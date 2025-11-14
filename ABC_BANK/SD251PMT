@@ -1,0 +1,6 @@
+SORT FIELDS = (1,7,ZD,A,8,30,CH,A)
+SUM FIELDS = NONE
+OUTFIL FILES = 1, INCLUDE COND=(1,7,CH,NE,C'       ',AND,8,30,CH,NE,C'                              ')
+OUTFIL FILES = 2, INCLUDE COND=(1,7,CH,EQ,C'       ',AND,8,30,CH,EQ,C'                              '),
+                  BUILD=(1,7,8,30,38,7,45,5,C'Pre-check fail        ',X'00'*11)
+ 
