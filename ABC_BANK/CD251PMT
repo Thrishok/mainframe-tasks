@@ -1,0 +1,193 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. COB.
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT INFILE ASSIGN TO INP
+           ORGANIZATION IS SEQUENTIAL
+           ACCESS IS SEQUENTIAL
+           FILE STATUS FS1.
+           SELECT OUTFILE1 ASSIGN TO OUT1
+           ORGANIZATION IS SEQUENTIAL
+           ACCESS IS SEQUENTIAL
+           FILE STATUS FS2.           
+           SELECT OUTFILE2 ASSIGN TO OUT2
+           ORGANIZATION IS SEQUENTIAL
+           ACCESS IS SEQUENTIAL
+           FILE STATUS FS3.       
+      *     SELECT INMAS ASSIGN TO OUT3
+      *     ORGANIZATION IS SEQUENTIAL
+      *     ACCESS IS SEQUENTIAL
+      *     FILE STATUS FS4.   
+           SELECT MASREJ ASSIGN TO OUT4
+           ORGANIZATION IS SEQUENTIAL
+           ACCESS IS SEQUENTIAL
+           FILE STATUS FS5.             
+       DATA DIVISION.
+       FILE SECTION.
+       FD INFILE.
+       01 INREC.
+           05 I-CUST-ID PIC X(7).
+           05 I-CUST-NAME PIC X(30).
+           05 I-PMT-AMT PIC 9(4).99.
+           05 I-PMT-ID PIC 9(5).
+           05 FILLER PIC X(31).
+       FD OUTFILE1.
+       01 OUTREC1.
+           05 OV-CUST-ID PIC X(7).
+           05 OV-CUST-NAME PIC X(30).
+           05 OV-PMT-AMT PIC 9(4).99.
+           05 OV-PMT-ID PIC 9(5).
+           05 FILLER PIC X(31).
+       FD OUTFILE2.
+       01 OUTREC2.
+           05 OI-CUST-ID PIC X(7).
+           05 OI-CUST-NAME PIC X(30).
+           05 OI-PMT-AMT PIC 9(4).99.
+           05 OI-PMT-ID PIC 9(5).  
+           05 FILLER PIC X(31).
+      * FD INMAS.
+      * 01 OUTREC3.
+      *     05 CUST-ID PIC X(7).
+      *     05 CUST-NAME PIC X(30).
+      *     05 GENDER PIC X.
+      *     05 CRNT-DUES PIC -9(6).99.
+      *     05 LAST-AMT-PAID PIC 9(4).99.  
+      *     05 FILLER PIC X(25).    
+       FD MASREJ.   
+       01 OUTREC4.
+           05 R-CUST-ID PIC X(7).
+           05 R-CUST-NAME PIC X(30).
+           05 R-GENDER PIC X.
+           05 R-CRNT-DUES PIC -9(6).99.
+           05 R-LAST-AMT-PAID PIC 9(4).99.  
+           05 R-PMT-REJ PIC X(25).               
+       WORKING-STORAGE SECTION.
+       01 FS1 PIC 9(2).             
+       01 FS2 PIC 9(2).
+       01 FS3 PIC 9(2).
+      * 01 FS4 PIC 9(2). 
+       01 FS5 PIC 9(2).       
+       01 WS-SQLCODE PIC S9(3) SIGN LEADING SEPARATE.
+           EXEC SQL
+               INCLUDE SQLCA
+           END-EXEC.
+           EXEC SQL 
+               INCLUDE DCLMAS
+           END-EXEC.
+           EXEC SQL 
+               DECLARE CUR CURSOR FOR 
+                   SELECT CUSTOMER_ID, CUSTOMER-NAME, CURRENT-DUES, 
+                   LAST-AMT-PAID, GENDER
+                   FROM CUSTOMER-MASTER
+                   FOR UPDATE OF LAST-AMT-PAID
+           END-EXEC.          
+       PROCEDURE DIVISION.
+       000-MAIN-PARA.
+           PERFORM 000-OPEN-PARA THRU
+           000-OPEN-PARA-EXIT
+           PERFORM 000-READ-PARA THRU
+           000-READ-PARA-EXIT UNTIL FS1 = 10 
+           PERFORM 000-CLOSE-PARA THRU
+           000-CLOSE-PARA-EXIT          
+           PERFORM 000-TERM-PARA.       
+       000-OPEN-PARA.
+           OPEN INPUT INFILE MASREJ.
+           OPEN OUTPUT OUTFILE1 OUTFILE2.
+           EVALUATE TRUE 
+                  WHEN FS1 = 0 
+                         DISPLAY "INP FILE OPENED"
+                  WHEN OTHER
+                         DISPLAY "FILE NOT OPENED " FS1 
+           END-EVALUATE.
+           EVALUATE TRUE 
+                  WHEN FS2 = 0 AND FS5 = 0
+                         DISPLAY "OUTFILE1 MASREJ OPENED"
+                  WHEN OTHER
+                         DISPLAY "FILE NOT OPENED " FS2 FS5
+           END-EVALUATE.
+           EVALUATE TRUE 
+                  WHEN FS3 = 0 
+                         DISPLAY "OUTFILE2 OPENED"
+                  WHEN OTHER
+                         DISPLAY "FILE NOT OPENED " FS3 
+           END-EVALUATE.  
+           EXEC SQL 
+               OPEN CUR
+           END-EXEC.
+           MOVE SQLCODE TO WS-SQLCODE.
+           EVALUATE TRUE 
+                  WHEN WS-SQLCODE = 0
+                         DISPLAY "CURSOR OPENED SUCCESSFULLY"
+                  WHEN OTHER
+                         DISPLAY "CURSOR NOT OPENED " WS-SQLCODE
+           END-EVALUATE.
+       000-OPEN-PARA-EXIT.
+           EXIT.
+       000-READ-PARA. 
+           READ INFILE.
+           EVALUATE TRUE 
+                  WHEN FS1 = 0  
+                         DISPLAY "INFILE INMAS READED"
+                  IF I-PMT-AMT = 0
+                         MOVE INREC TO OUTREC2
+                         WRITE OUTREC2  
+                         DISPLAY "RECORD MOVED TO OUTREC2"
+                  ELSE 
+                         MOVE INREC TO OUTREC1
+                         WRITE OUTREC1
+                         DISPLAY "RECORD MOVED TO OUTREC1"  
+                  END-IF    
+                  WHEN OTHER
+                         DISPLAY "FILE NOT READED " FS1 
+                         STOP RUN
+           END-EVALUATE.  
+           EXEC SQL
+                FETCH CUR INTO :HV-CUST-ID, :HV-CUST-NAME, 
+                :HV-CRNT-DUES, :HV-LAST-AMT-PAID, :HV-GENDER
+           END-EXEC.
+           EVALUATE TRUE
+                  WHEN HV-CUST-ID NOT = SPACES AND HV-CUST-NAME = SPACES
+                      EXEC SQL 
+                          UPDATE CUSTOMER-MASTER
+                          SET 
+                          LAST-AMT-PAID = :HV-CRNT-DUES - I-PMT-AMT
+                          WHERE CURRENT OF CUR
+                      END-EXEC
+                  WHEN HV-CUST-ID = SPACES AND HV-CUST-NAME NOT = SPACES
+                       EXEC SQL 
+                          UPDATE CUSTOMER-MASTER
+                          SET 
+                          LAST-AMT-PAID = :HV-CRNT-DUES - I-PMT-AMT
+                          WHERE CURRENT OF CUR
+                      END-EXEC         
+                  WHEN HV-CUST-ID NOT = SPACES AND 
+                       HV-CUST-NAME NOT = SPACES
+                       EXEC SQL 
+                          UPDATE CUSTOMER-MASTER
+                          SET 
+                          LAST-AMT-PAID = :HV-CRNT-DUES - I-PMT-AMT
+                          WHERE CURRENT OF CUR
+                      END-EXEC  
+                  WHEN HV-CUST-ID = SPACES AND 
+                       HV-CUST-NAME = SPACES
+                       MOVE HV-CUST-ID TO R-CUST-ID                   
+                       MOVE HV-CUST-NAME TO R-CUST-NAME
+                       MOVE HV-GENDER TO R-GENDER
+                       MOVE HV-CRNT-DUES TO R-CRNT-DUES
+                       MOVE HV-LAST-AMT-PAID TO R-LAST-AMT-PAID
+                       MOVE "MISSING CUSTOMER ID" TO R-PMT-REJ
+                       WRITE OUTREC4
+                  WHEN OTHER
+                        CONTINUE
+           END-EVALUATE.
+       000-READ-PARA-EXIT.
+           EXIT.
+       000-CLOSE-PARA.
+           CLOSE INFILE OUTFILE1 OUTFILE2.
+       000-CLOSE-PARA-EXIT.
+           EXIT.
+       000-TERM-PARA.
+           STOP RUN.
+           
+
