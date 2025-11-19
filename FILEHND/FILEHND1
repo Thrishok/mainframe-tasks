@@ -1,0 +1,118 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. FILEHND1.
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT INFILE ASSIGN TO EMPDATAI
+           ORGANIZATION IS SEQUENTIAL
+           ACCESS IS SEQUENTIAL
+           FILE STATUS FS1.
+           SELECT OUTFILE ASSIGN TO EMPDATAO
+           ORGANIZATION IS SEQUENTIAL
+           ACCESS IS SEQUENTIAL
+           FILE STATUS FS2.                 
+       DATA DIVISION.
+       FILE SECTION.
+       FD INFILE.
+       01 INREC.
+            05 I-EMP-NAME           PIC X(06).                          
+            05 FILLER               PIC X(05).                          
+            05 I-EMP-LOC            PIC X(10).                          
+            05 FILLER               PIC X(05).                          
+            05 I-EMP-DSG            PIC X(20).                          
+            05 FILLER               PIC X(05).                          
+       FD OUTFILE.
+       01 OUTREC.
+            05 O-EMP-NAME           PIC X(06).                          
+            05 FILLER               PIC X(05).                          
+            05 O-EMP-LOC            PIC X(10).                          
+            05 FILLER               PIC X(05).                          
+            05 O-EMP-DSG            PIC X(20).                          
+            05 FILLER               PIC X(05).                          
+            05 O-EMP-SAL            PIC ZZ,ZZZ,ZZ9. 
+            05 FILLER               PIC X(05).                          
+            05 O-EMP-GENDER         PIC X(01).                        
+            05 FILLER               PIC X(20).  
+       WORKING-STORAGE SECTION.
+       01 FS1                     PIC 9(2).
+       01 FS2                     PIC 9(2).
+       01 COUNTER                 PIC 9(2).
+       PROCEDURE DIVISION.
+       000-MAIN-PARA.
+           PERFORM 000-INIT-PARA THRU
+           000-INIT-PARA-EXIT       
+           PERFORM 000-OPEN-PARA THRU
+           000-OPEN-PARA-EXIT
+           PERFORM 000-READ-PARA THRU
+           000-READ-PARA-EXIT UNTIL FS1 = 10
+           PERFORM 000-CLOSE-PARA THRU
+           000-CLOSE-PARA-EXIT
+           PERFORM 000-TERM-PARA.   
+       000-INIT-PARA.
+           INITIALIZE FS1 FS2 COUNTER.
+           MOVE 1 TO COUNTER.
+       000-INIT-PARA-EXIT.
+           EXIT. 
+       000-OPEN-PARA.
+           OPEN INPUT INFILE.
+           OPEN OUTPUT OUTFILE.
+           EVALUATE TRUE 
+                  WHEN FS1 = 0 
+                         DISPLAY "INP FILE OPENED"
+                  WHEN OTHER
+                         DISPLAY "FILE NOT OPENED " FS1 
+           END-EVALUATE.
+           EVALUATE TRUE 
+                  WHEN FS2 = 0 
+                         DISPLAY "OUTFILE OPENED"
+                  WHEN OTHER
+                         DISPLAY "FILE NOT OPENED " FS2
+           END-EVALUATE.
+       000-OPEN-PARA-EXIT.
+           EXIT.
+       000-READ-PARA. 
+           READ INFILE.
+           EVALUATE TRUE 
+                  WHEN FS1 = 0 
+                         DISPLAY "INFILE READED" 
+                  WHEN OTHER
+                         DISPLAY "FILE NOT READED " FS1 
+                         STOP RUN
+           END-EVALUATE.  
+      *GIVING SALARY BASED ON DESIGNATION
+           EVALUATE TRUE
+              WHEN I-EMP-DSG = "Software Engineer"
+                 MOVE 30000 TO O-EMP-SAL
+              WHEN I-EMP-DSG = "Senior Software Engineer"
+                 MOVE 50000 TO O-EMP-SAL
+              WHEN I-EMP-DSG = "TEAM LEAD"
+                 MOVE 100000 TO O-EMP-SAL
+               WHEN OTHER 
+                   DISPLAY " DESIGNATION NOT FOUND "
+           END-EVALUATE.
+      *CHANING DESIGNATION AND LOCATION
+           IF I-EMP-DSG = "Senior Software Engineer"
+              INSPECT I-EMP-DSG REPLACING ALL
+              "Senior Software Engineer" BY "Technology Analyst"
+              MOVE "NEW DELHI" TO O-EMP-LOC
+           ELSE 
+              DISPLAY " THIS IS NOT A SENIOR SOFTWARE ENGINEER"
+           END-IF.           
+      *GIVING ALTERNATE GENDER   
+           IF COUNTER = 1
+              MOVE 'F' TO O-EMP-GENDER
+              MOVE 0 TO COUNTER
+           ELSE IF COUNTER = 0
+              MOVE 'M' TO O-EMP-GENDER   
+              MOVE 1 TO COUNTER       
+           END-IF.
+           WRITE OUTREC.    
+       000-READ-PARA-EXIT.
+           EXIT.
+       000-CLOSE-PARA.
+           CLOSE INFILE OUTFILE.
+       000-CLOSE-PARA-EXIT.
+           EXIT.
+       000-TERM-PARA.
+           STOP RUN.
+
