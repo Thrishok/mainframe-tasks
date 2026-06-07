@@ -1,16 +1,17 @@
-from diffusers import DiffusionPipeline
-import torch
 
-pipe = DiffusionPipeline.from_pretrained(
-    "black-forest-labs/FLUX.1-schnell",
-    torch_dtype=torch.float16
-)
+Freshness
+1. Last successful update - not scoped to critical tables
 
-pipe = pipe.to("cuda" if torch.cuda.is_available() else "cpu")
+Volume
+1. Call out if Silver layer(mentioned bronze only, no silver)
+2. DLT pipeline update cycles — different chart type (not stacked bar) - still in stacked bar chart
 
-image = pipe(
-    "a futuristic AI assistant",
-    num_inference_steps=4
-).images[0]
+Lineage & governance
+1. Lineage completeness % — not categorized by layers.
 
-image
+Cost
+1. Leakage cost — inactive clusters
+
+AI Agents :
+1. Create prompts, ready made questions on Ask Genie ready
+
